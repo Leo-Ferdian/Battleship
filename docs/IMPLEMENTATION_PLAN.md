@@ -1,6 +1,6 @@
 # Rencana Implementasi: Battleship Web Game
 
-**Status:** Draft v0.1
+**Status:** Draft v0.2
 **Dokumen terkait:** `PRD.md`, `TECH_SPEC.md`, `GAME_DESIGN.md`, `UX_FLOW.md`, `DESIGN_SYSTEM.md`
 **Terakhir diperbarui:** 26 November 2026
 
@@ -45,7 +45,7 @@
 **Tugas**
 - Buat repositori GitHub dan proyek Vite (React + TypeScript).
 - Aktifkan TypeScript `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`.
-- Pasang ESLint (`typescript-eslint`, `react-hooks`, `jsx-a11y`) dan Prettier. Tambahkan aturan pembatas impor untuk `src/engine/**`.
+- Pasang ESLint (`typescript-eslint`, `react-hooks`) dan Prettier. Tambahkan aturan pembatas impor dan global untuk `src/engine/**`. Catatan: `eslint-plugin-jsx-a11y` belum dipasang karena peer dependency-nya baru sampai ESLint 9 sedangkan proyek memakai ESLint 10; aksesibilitas dijaga lewat tes axe dan Lighthouse (lihat `TECH_SPEC.md` bagian 12). Periksa ulang dukungan plugin itu saat M4 atau M8.
 - Pasang Vitest dengan ambang cakupan untuk engine.
 - Buat `tokens.css` dari `DESIGN_SYSTEM.md` dan pasang font lewat `@fontsource`.
 - Buat workflow CI. Hubungkan Vercel.
@@ -186,3 +186,4 @@
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 0.1 | 26 Nov 2026 | Draf awal: milestone M0 sampai M9, DoD, keterlacakan FR, pembagian kerja |
+| 0.2 | 27 Nov 2026 | M0: `jsx-a11y` ditunda karena belum mendukung ESLint 10 |
