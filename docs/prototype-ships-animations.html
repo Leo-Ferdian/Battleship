@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototipe kapal dan animasi (Radar taktis)</title>
+<style>
+  :root{--bg:#0b1f1a;--text:#d9f5ea;--text2:#6fcfa8;--accent:#4fd1a5;--line:#1f5c46}
+  body{margin:0;padding:16px;background:#071612;color:var(--text);font-family:system-ui,sans-serif}
+  .wrap{max-width:720px;margin:0 auto}
+  .bar{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px}
+  .bar span{font-size:13px;color:var(--text2)}
+  .stagewrap{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;align-items:flex-start}
+  .ctrl{flex:1 1 180px;display:flex;flex-direction:column;gap:8px}
+  button{background:transparent;color:var(--accent);border:1.5px solid var(--accent);border-radius:4px;padding:8px 14px;font:500 13px ui-monospace,monospace;cursor:pointer}
+  button:hover{background:#14352c}
+  button:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+  #log{font-size:13px;color:var(--text2);margin:4px 0 0;min-height:40px;line-height:1.5}
+  p.note{font-size:12px;color:#5fb394;margin-top:20px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="bar">
+  <span>Galeri kapal, siluet detail</span>
+  <button id="lg" onclick="toggleLang()">Bahasa: ID</button>
+</div>
+<div id="gal"></div>
+<div class="stagewrap">
+  <div style="flex:1 1 300px;max-width:400px;"><div id="stage"></div></div>
+  <div class="ctrl">
+    <button onclick="doHit()">Rudal kena</button>
+    <button onclick="doMiss()">Rudal meleset</button>
+    <button onclick="doSink()">Tenggelamkan kapal</button>
+    <button onclick="doReset()">Reset</button>
+    <p id="log">Tekan tombol untuk memutar animasi.</p>
+  </div>
+</div>
+<p class="note">Prototipe referensi, bukan kode produksi. Gambar kapal (fungsi <code>shipSVG</code>) dan urutan animasi (<code>fire</code>, <code>impactHit</code>, <code>impactMiss</code>, <code>doSink</code>) disetujui sebagai acuan visual. Di proyek React, pindahkan ke komponen SVG bertipe, ganti warna hardcode dengan token dari <code>DESIGN_SYSTEM.md</code>, dan ganti durasi dengan token gerak.</p>
+</div>
+<script>
+var NS='http://www.w3.org/2000/svg';
+var GR='#4fd1a5',RD='#ff6b57',BG='#0b1f1a',GL='#1f5c46',TX='#6fcfa8';
+var names={Carrier:['Kapal Induk','Carrier'],Battleship:['Kapal Perang','Battleship'],Cruiser:['Penjelajah','Cruiser'],Submarine:['Kapal Selam','Submarine'],Destroyer:['Perusak','Destroyer']};
+var gl=[['Utuh (papan Anda)','Tenggelam (papan lawan)'],['Intact (your board)','Sunk (enemy board)']];
+var lang=0;
+function nm(k){return names[k][lang];}
+function el(id){return document.getElementById(id);}
+function E(tag,a,p){var e=document.createElementNS(NS,tag);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+function run(dur,fn,done){var st=null;function f(ts){if(st===null)st=ts;var t=Math.min(1,(ts-st)/dur);fn(t);if(t<1)requestAnimationFrame(f);else if(done)done();}requestAnimationFrame(f);}
+function cl(x){return Math.max(0,Math.min(1,x));}
+function hp(w,h,i){var m=h/2,b=h*0.85,k=h*0.12;return 'M'+(i+k)+' '+i+'L'+(w-b)+' '+i+'Q'+(w-k)+' '+(i+1)+' '+(w-i)+' '+m+'Q'+(w-k)+' '+(h-i-1)+' '+(w-b)+' '+(h-i)+'L'+(i+k)+' '+(h-i)+'Q'+i+' '+(h-i)+' '+i+' '+(h-i-k)+'L'+i+' '+(i+k)+'Q'+i+' '+i+' '+(i+k)+' '+i+'Z';}
+function shipSVG(n,len,S,col,sunk){
+  var w=len*S,h=S,u=h/10,cy=h/2,dc=sunk?BG:col,fo=sunk?0.92:0.2,s='';
+  function T(cx,r){return '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+dc+'" fill-opacity="0.3" stroke="'+dc+'" stroke-width="1.4"/><path d="M'+(cx+r*0.5)+' '+(cy-r*0.4)+'h'+(r*2.2)+'M'+(cx+r*0.5)+' '+(cy+r*0.4)+'h'+(r*2.2)+'" stroke="'+dc+'" stroke-width="1.6" stroke-linecap="round"/>';}
+  function R(x,y,a,b,o){return '<rect x="'+x+'" y="'+y+'" width="'+a+'" height="'+b+'" rx="1.5" fill="'+dc+'" fill-opacity="'+o+'" stroke="'+dc+'" stroke-width="1"/>';}
+  function F(cx){return '<circle cx="'+cx+'" cy="'+cy+'" r="'+(u*1.1)+'" fill="'+dc+'" fill-opacity="0.35" stroke="'+dc+'" stroke-width="1.2"/>';}
+  if(n=='Submarine'){
+    var bh=h-u*5.2;
+    s+='<rect x="'+(u*0.8)+'" y="'+(u*2.6)+'" width="'+(w-u*1.6)+'" height="'+bh+'" rx="'+(bh/2)+'" fill="'+col+'" fill-opacity="'+fo+'" stroke="'+col+'" stroke-width="1.5"/>';
+    s+='<path d="M'+(u*4)+' '+cy+'H'+(w-u*4)+'" stroke="'+dc+'" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/>';
+    s+=R(w*0.42,cy-u*1.7,u*4,u*3.4,0.6)+'<circle cx="'+(w*0.42+u*2)+'" cy="'+cy+'" r="'+(u*0.6)+'" fill="'+dc+'"/>';
+    s+=R(w*0.68,u*1.4,u*2.4,u*1.2,0.7)+R(w*0.68,h-u*2.6,u*2.4,u*1.2,0.7);
+    s+='<path d="M'+(u*1.6)+' '+(cy-u*1.2)+'v'+(u*2.4)+'M'+(u*0.6)+' '+cy+'h'+(u*1.6)+'" stroke="'+dc+'" stroke-width="1.4"/>';
+    return s;
+  }
+  s+='<path d="'+hp(w,h,u*0.6)+'" fill="'+col+'" fill-opacity="'+fo+'" stroke="'+col+'" stroke-width="1.5" stroke-linejoin="round"/>';
+  s+='<path d="'+hp(w,h,u*1.8)+'" fill="none" stroke="'+dc+'" stroke-width="0.8" opacity="0.55"/>';
+  if(n=='Carrier'){
+    s+='<path d="M'+(u*3)+' '+cy+'H'+(w-h*1.1)+'" stroke="'+dc+'" stroke-width="1" stroke-dasharray="4 3" opacity="0.8"/>';
+    s+=R(w*0.3,u*2.4,u*2.4,u*1.6,0.35)+R(w*0.45,u*2.4,u*2.4,u*1.6,0.35)+R(w*0.6,u*1.7,u*4.4,u*2,0.75);
+    [0.08,0.17,0.26].forEach(function(f){var x=w*f,y=h*0.74;s+='<path d="M'+x+' '+y+'h'+(u*2.6)+'M'+(x+u*0.9)+' '+(y-u*1.1)+'v'+(u*2.2)+'M'+(x+u*2.2)+' '+(y-u*0.5)+'v'+u+'" stroke="'+dc+'" stroke-width="1.2" fill="none" stroke-linecap="round"/>';});
+  }
+  if(n=='Battleship'){
+    s+=T(w*0.14,u*1.6)+R(w*0.3,cy-u*1.8,w*0.18,u*3.6,0.4)+R(w*0.34,cy-u,w*0.07,u*2,0.8)+F(w*0.54)+T(w*0.62,u*1.6)+T(w*0.76,u*1.5);
+  }
+  if(n=='Cruiser'){
+    s+=T(w*0.15,u*1.4)+R(w*0.32,cy-u*1.7,w*0.2,u*3.4,0.4)+R(w*0.36,cy-u*0.9,w*0.09,u*1.8,0.8)+F(w*0.58)+T(w*0.72,u*1.4);
+  }
+  if(n=='Destroyer'){
+    s+=R(w*0.1,cy-u*2,u*2.2,u,0.5)+R(w*0.1,cy+u,u*2.2,u,0.5)+R(w*0.3,cy-u*1.5,w*0.2,u*3,0.4)+R(w*0.35,cy-u*0.8,w*0.08,u*1.6,0.8)+F(w*0.58)+T(w*0.72,u*1.2);
+  }
+  return s;
+}
+function cells(len,S){var s='';for(var i=0;i<len;i++)s+='<rect x="'+(i*S)+'" y="0" width="'+S+'" height="'+S+'" fill="none" stroke="'+GL+'" stroke-width="0.8"/>';return s;}
+function gallery(){
+  var S=40,W=580,H=26+5*52+6,fl=[['Carrier',5],['Battleship',4],['Cruiser',3],['Submarine',3],['Destroyer',2]];
+  var h='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Siluet detail lima kapal"><rect width="'+W+'" height="'+H+'" rx="8" fill="'+BG+'"/>';
+  h+='<text x="140" y="18" font-size="11" fill="'+TX+'" font-family="monospace">'+gl[lang][0]+'</text><text x="360" y="18" font-size="11" fill="'+TX+'" font-family="monospace">'+gl[lang][1]+'</text>';
+  fl.forEach(function(f,i){
+    var y=26+i*52;
+    h+='<text x="10" y="'+(y+S/2+4)+'" font-size="12" fill="'+TX+'" font-family="monospace">'+nm(f[0])+' ('+f[1]+')</text>';
+    h+='<g transform="translate(140,'+y+')">'+cells(f[1],S)+shipSVG(f[0],f[1],S,GR,false)+'</g>';
+    h+='<g transform="translate(360,'+y+')">'+cells(f[1],S)+shipSVG(f[0],f[1],S,RD,true)+'</g>';
+  });
+  el('gal').innerHTML=h+'</svg>';
+}
+var S2=34,O=22,COLS=8,ROWS=6,SW=O+COLS*S2+10,SH=O+ROWS*S2+40;
+var ships={cruiser:{k:'Cruiser',len:3,r:3,c:0,v:false},dest:{k:'Destroyer',len:2,r:1,c:4,v:false},sub:{k:'Submarine',len:3,r:1,c:7,v:true},battle:{k:'Battleship',len:4,r:5,c:2,v:false}};
+var shipAt={},marks,fx;
+for(var id in ships){var q=ships[id];for(var i=0;i<q.len;i++){shipAt[(q.v?q.r+i:q.r)+','+(q.v?q.c:q.c+i)]=id;}}
+function cc(r,c){return [O+c*S2+S2/2,O+r*S2+S2/2];}
+function coord(r,c){return 'ABCDEFGH'[c]+(r+1);}
+function buildStage(){
+  var h='<svg viewBox="0 0 '+SW+' '+SH+'" width="100%" role="img" aria-label="Simulasi tembakan rudal ke papan"><rect width="'+SW+'" height="'+SH+'" rx="8" fill="'+BG+'"/>';
+  for(var c=0;c<COLS;c++)h+='<text x="'+(O+c*S2+S2/2)+'" y="15" font-size="11" text-anchor="middle" fill="'+TX+'" font-family="monospace">'+'ABCDEFGH'[c]+'</text>';
+  for(var r=0;r<ROWS;r++){
+    h+='<text x="11" y="'+(O+r*S2+S2/2+4)+'" font-size="11" text-anchor="middle" fill="'+TX+'" font-family="monospace">'+(r+1)+'</text>';
+    for(var c2=0;c2<COLS;c2++)h+='<rect x="'+(O+c2*S2)+'" y="'+(O+r*S2)+'" width="'+S2+'" height="'+S2+'" fill="none" stroke="'+GL+'" stroke-width="0.8"/>';
+  }
+  for(var id in ships){
+    var q=ships[id],base=q.v?'translate('+(O+q.c*S2+S2)+','+(O+q.r*S2)+') rotate(90)':'translate('+(O+q.c*S2)+','+(O+q.r*S2)+')';
+    h+='<g transform="'+base+'"><g id="in_'+id+'"><g id="gr_'+id+'">'+shipSVG(q.k,q.len,S2,GR,false)+'</g><g id="rd_'+id+'" opacity="0">'+shipSVG(q.k,q.len,S2,RD,true)+'</g></g></g>';
+  }
+  h+='<g id="marks"></g><g id="fx"></g>';
+  h+='<path d="M'+(SW/2-9)+' '+(SH-6)+'L'+(SW/2)+' '+(SH-20)+'L'+(SW/2+9)+' '+(SH-6)+'Z" fill="none" stroke="'+GR+'" stroke-width="1.5"/>';
+  el('stage').innerHTML=h+'</svg>';
+  marks=el('marks');fx=el('fx');
+}
+var hitSeq=[[3,1],[1,5],[2,7],[5,3],[3,0],[1,4]],missSeq=[[0,2],[2,3],[4,5],[0,6],[4,1],[2,5]];
+var hi=0,mi=0,si=0,busy=false,sinkSeq=['cruiser','dest','sub','battle'];
+function say(t){el('log').textContent=t;}
+function addMark(hit,r,c){
+  if(el('m_'+r+'_'+c))return;
+  var t=cc(r,c),g=E('g',{id:'m_'+r+'_'+c},marks);
+  if(hit){E('circle',{cx:t[0],cy:t[1],r:11,fill:RD,'fill-opacity':0.2},g);E('path',{d:'M'+(t[0]-6)+' '+(t[1]-6)+'L'+(t[0]+6)+' '+(t[1]+6)+'M'+(t[0]+6)+' '+(t[1]-6)+'L'+(t[0]-6)+' '+(t[1]+6),stroke:RD,'stroke-width':2.5,'stroke-linecap':'round'},g);}
+  else E('circle',{cx:t[0],cy:t[1],r:3,fill:GR},g);
+}
+function fire(r,c,hit){
+  busy=true;
+  var t=cc(r,c),tx=t[0],ty=t[1],sx=SW/2,sy=SH-18,g=E('g',{},fx);
+  var ret=E('g',{},g),c1=E('circle',{cx:tx,cy:ty,r:24,fill:'none',stroke:GR,'stroke-width':1.5},ret);
+  E('line',{x1:tx-14,y1:ty,x2:tx+14,y2:ty,stroke:GR,'stroke-width':1},ret);
+  E('line',{x1:tx,y1:ty-14,x2:tx,y2:ty+14,stroke:GR,'stroke-width':1},ret);
+  say('Mengunci target '+coord(r,c)+'...');
+  run(450,function(p){c1.setAttribute('r',24-14*p);ret.setAttribute('opacity',0.3+0.7*p);},function(){
+    var tr=E('line',{x1:sx,y1:sy,x2:sx,y2:sy,stroke:GR,'stroke-width':1.5,opacity:0.5},g);
+    var m=E('g',{},g);E('circle',{cx:0,cy:6,r:2.4,fill:'#ffb347'},m);E('path',{d:'M0 -7L2.6 4L0 2L-2.6 4Z',fill:'#e8fff6'},m);
+    var ang=Math.atan2(ty-sy,tx-sx)*180/Math.PI+90;
+    say('Rudal meluncur ke '+coord(r,c)+'...');
+    run(650,function(p){var e=p*p,px=sx+(tx-sx)*e,py=sy+(ty-sy)*e;m.setAttribute('transform','translate('+px+','+py+') rotate('+ang+')');tr.setAttribute('x2',px);tr.setAttribute('y2',py);},function(){
+      g.removeChild(m);g.removeChild(tr);g.removeChild(ret);
+      if(hit)impactHit(r,c,tx,ty,g);else impactMiss(r,c,tx,ty,g);
+    });
+  });
+}
+function impactHit(r,c,tx,ty,g){
+  var fl=E('circle',{cx:tx,cy:ty,r:0,fill:'#ffd27a'},g),rg=E('circle',{cx:tx,cy:ty,r:0,fill:'none',stroke:RD,'stroke-width':3},g),ps=[];
+  for(var i=0;i<8;i++){ps.push([i*Math.PI/4+0.3,E('line',{stroke:'#ffb347','stroke-width':2,'stroke-linecap':'round'},g)]);}
+  var sid=shipAt[r+','+c],inn=sid?el('in_'+sid):null;
+  run(700,function(p){
+    fl.setAttribute('r',S2*0.7*Math.sin(cl(p*1.6)*Math.PI/2));fl.setAttribute('opacity',1-p);
+    rg.setAttribute('r',S2*1.1*p);rg.setAttribute('opacity',1-p);rg.setAttribute('stroke-width',3*(1-p)+0.3);
+    ps.forEach(function(q){var d1=S2*0.2+S2*0.7*p,d2=d1+S2*0.25*(1-p),a=q[0];q[1].setAttribute('x1',tx+Math.cos(a)*d1);q[1].setAttribute('y1',ty+Math.sin(a)*d1);q[1].setAttribute('x2',tx+Math.cos(a)*d2);q[1].setAttribute('y2',ty+Math.sin(a)*d2);q[1].setAttribute('opacity',1-p);});
+    if(inn){var k=(1-p)*2.5;inn.setAttribute('transform','translate('+((Math.random()-0.5)*k)+','+((Math.random()-0.5)*k)+')');}
+  },function(){
+    if(inn)inn.setAttribute('transform','');
+    fx.removeChild(g);addMark(true,r,c);busy=false;
+    say('Rudal ke '+coord(r,c)+': kena '+(sid?nm(ships[sid].k):'')+'!');
+  });
+}
+function impactMiss(r,c,tx,ty,g){
+  var rings=[];
+  for(var i=0;i<3;i++)rings.push(E('circle',{cx:tx,cy:ty,r:0,fill:'none',stroke:GR,'stroke-width':1.5,opacity:0},g));
+  run(800,function(p){rings.forEach(function(rg,i){var u=cl((p-i*0.18)/0.64);rg.setAttribute('r',S2*0.8*u);rg.setAttribute('opacity',u>0?(1-u)*0.9:0);});},function(){
+    fx.removeChild(g);addMark(false,r,c);busy=false;
+    say('Rudal ke '+coord(r,c)+': meleset.');
+  });
+}
+function doHit(){if(busy)return;var t=hitSeq[hi%hitSeq.length];hi++;fire(t[0],t[1],true);}
+function doMiss(){if(busy)return;var t=missSeq[mi%missSeq.length];mi++;fire(t[0],t[1],false);}
+function doSink(){
+  if(busy)return;
+  if(si>=sinkSeq.length){say('Semua kapal sudah tenggelam. Tekan Reset untuk mengulang.');return;}
+  var id=sinkSeq[si++],sh=ships[id],inn=el('in_'+id),gr=el('gr_'+id),rd=el('rd_'+id);
+  busy=true;
+  var w=sh.len*S2,lx=w/2,ly=S2/2;
+  var ctr=sh.v?[O+sh.c*S2+S2/2,O+sh.r*S2+w/2]:[O+sh.c*S2+w/2,O+sh.r*S2+S2/2];
+  var g=E('g',{},fx),pulse=E('circle',{cx:ctr[0],cy:ctr[1],r:0,fill:'none',stroke:RD,'stroke-width':2,opacity:0},g),bub=[];
+  for(var i=0;i<7;i++){
+    var bx=ctr[0]+(Math.random()-0.5)*(sh.v?S2*0.8:w*0.8),by=ctr[1]+(Math.random()-0.5)*(sh.v?w*0.8:S2*0.8);
+    bub.push({e:E('circle',{cx:bx,cy:by,r:1.5+Math.random()*2,fill:'none',stroke:'#9fe8cf','stroke-width':1,opacity:0},g),y:by,d:Math.random()*0.35});
+  }
+  say(nm(sh.k)+' terkena serangan beruntun...');
+  run(2300,function(t){
+    var p1=cl(t/0.25),p2=cl((t-0.25)/0.6),ez=p2*p2*(3-2*p2);
+    gr.setAttribute('opacity',1-p1);rd.setAttribute('opacity',p1*(1-0.7*p2));
+    if(t<0.6){var q=(t/0.3)%1;pulse.setAttribute('r',S2*1.3*q);pulse.setAttribute('opacity',1-q);}else pulse.setAttribute('opacity',0);
+    inn.setAttribute('transform','translate('+lx+','+ly+') rotate('+(-8*ez)+') scale('+(1-0.14*ez)+') translate('+(-lx)+','+(-ly)+')');
+    bub.forEach(function(b){var u=cl((t-0.2-b.d)/0.6);b.e.setAttribute('cy',b.y-22*u);b.e.setAttribute('opacity',u>0?(1-u)*0.9:0);});
+  },function(){
+    fx.removeChild(g);
+    for(var i=0;i<sh.len;i++)addMark(true,sh.v?sh.r+i:sh.r,sh.v?sh.c:sh.c+i);
+    var tg=E('g',{},fx),tw=170,tt=O+ROWS*S2/2-14;
+    E('rect',{x:SW/2-tw/2,y:tt,width:tw,height:28,rx:4,fill:BG,'fill-opacity':0.9,stroke:RD,'stroke-width':1},tg);
+    var tx=E('text',{x:SW/2,y:tt+18,'text-anchor':'middle','font-size':13,fill:RD,'font-family':'monospace'},tg);
+    tx.textContent=nm(sh.k)+(lang?' sunk!':' tenggelam!');
+    say(nm(sh.k)+(lang?' sunk!':' tenggelam!'));
+    busy=false;
+    run(1900,function(p){tg.setAttribute('opacity',p<0.7?1:1-(p-0.7)/0.3);},function(){fx.removeChild(tg);});
+  });
+}
+function doReset(){if(busy)return;buildStage();hi=0;mi=0;si=0;say('Papan direset. Tekan tombol untuk memutar animasi.');}
+function toggleLang(){lang=1-lang;el('lg').textContent='Bahasa: '+(lang?'EN':'ID');gallery();}
+gallery();
+buildStage();
+</script>
+</body>
+</html>
