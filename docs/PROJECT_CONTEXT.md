@@ -18,7 +18,7 @@ Game Battleship berbasis web, pemain melawan komputer, desktop-first, dwibahasa 
 | Prototipe kapal dan animasi | Selesai, gaya disetujui | `prototype-ships-animations.html` |
 | Technical Design | Draf v0.1 selesai. Pilihan stack disetujui; alat pendukung (i18n, pengujian, lint) adalah default teknis yang bisa diubah | `TECH_SPEC.md` |
 | Rencana implementasi | Draf v0.1 selesai (milestone M0 sampai M9) | `IMPLEMENTATION_PLAN.md` |
-| Kode game | **Belum ada.** Implementasi dimulai dari M0 | - |
+| Kode game | **Belum ada.** M0 sedang berjalan: repositori `Leo-Ferdian/Battleship` sudah dibuat, proyek Vite (React 19, Vite 8, TypeScript 6, ESLint 10) sudah di-scaffold, TypeScript ketat dan Prettier aktif, dokumen ada di `docs/`. Berikutnya: Vitest, pagar engine murni, CI, Vercel | - |
 
 Artinya: seluruh perencanaan sudah rampung. Langkah berikutnya adalah menulis kode, dimulai dari milestone M0 (fondasi proyek).
 
@@ -85,7 +85,8 @@ Jika dokumen bertentangan: `GAME_DESIGN.md` menang untuk aturan dan perilaku gam
 | 1 | Review Design System v0.2 oleh pemilik | Palet, ukuran teks, dan komponen belum ditinjau secara eksplisit |
 | 2 | Pintasan `Tab` untuk saklar | Dipasang bersama `V`; diputuskan ulang saat uji aksesibilitas (M8) |
 | 3 | Ambang rata-rata tembakan AI di tes simulasi | Ditetapkan setelah simulasi pertama (perkiraan 45-60) |
-| 4 | Versi pasti React dan pustaka | Dikunci di `package.json` saat M0 |
+| 4 | ~~Versi pasti React dan pustaka~~ | Terkunci di `package.json`: React 19.3, Vite 8.4, TypeScript 6.0, ESLint 10 |
+| 5 | `eslint-plugin-jsx-a11y` | Belum dipasang (peer dependency baru sampai ESLint 9). Diganti tes axe dan Lighthouse; periksa ulang saat M4 atau M8 |
 
 Tidak ada yang menghalangi dimulainya M0.
 

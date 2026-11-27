@@ -1,6 +1,6 @@
 # Technical Design: Battleship Web Game
 
-**Status:** Draft v0.1
+**Status:** Draft v0.2
 **Dokumen terkait:** `PRD.md`, `GAME_DESIGN.md`, `UX_FLOW.md`, `DESIGN_SYSTEM.md`, `IMPLEMENTATION_PLAN.md`
 **Terakhir diperbarui:** 26 November 2026
 
@@ -33,7 +33,8 @@ Mengubah dokumen produk dan desain menjadi rancangan teknis yang bisa langsung d
 | Property test | `fast-check` | Default | Cocok untuk penempatan acak dan AI | - |
 | Tes komponen | Testing Library (React, user-event) | Default | Menguji perilaku, bukan implementasi | - |
 | E2E | Playwright (satu smoke test) | Default | Menjaga alur utama tetap jalan | Cypress |
-| Lint dan format | ESLint (`typescript-eslint`, `react-hooks`, `jsx-a11y`) + Prettier | Default | Konsistensi dan aksesibilitas otomatis | Biome |
+| Lint dan format | ESLint 10 (`typescript-eslint`, `react-hooks`) + Prettier | Default | Konsistensi kode. `jsx-a11y` ditunda: peer dependency-nya baru sampai ESLint 9 (dicek 27 Nov 2026) | Biome |
+| Tes aksesibilitas otomatis | `vitest-axe` (atau setara) pada tes komponen + Lighthouse | Default | Pengganti `jsx-a11y` sampai plugin itu mendukung ESLint 10 | `jsx-a11y` bila sudah kompatibel |
 | Modal | Elemen `<dialog>` bawaan browser | Default | Fokus terperangkap dan `Esc` gratis | Library modal |
 | Papan | Grid tombol HTML di atas lapisan seni SVG | Default | Aksesibilitas kuat, seni tetap vektor | Papan SVG penuh |
 | Paket manajer | npm | Default | Tanpa langkah instalasi tambahan | pnpm |
@@ -348,7 +349,7 @@ Hanya `settingsStore` yang disimpan, dengan kunci `battleship:settings:v1` (vers
 | Bahasa dokumen | `lang` mengikuti bahasa terpilih |
 | Pintasan | Semua dalam satu konstanta `SHORTCUTS` (Tab, V, Enter, Esc, R, panah), mudah diubah |
 
-Pengecekan otomatis: aturan `jsx-a11y` di ESLint, ditambah audit Lighthouse dan pengecekan manual dengan pembaca layar pada milestone M8.
+Pengecekan otomatis: tes axe pada komponen utama (papan, saklar, modal, kontrol tembak), ditambah audit Lighthouse dan pengecekan manual dengan pembaca layar pada milestone M8. Aturan `jsx-a11y` di ESLint ditambahkan bila plugin sudah mendukung ESLint 10 (periksa dengan `npm view eslint-plugin-jsx-a11y peerDependencies`).
 
 ## 13. Pengujian
 
@@ -418,3 +419,4 @@ Tidak ada yang menghalangi implementasi. Hal kecil yang diputuskan saat pengerja
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 0.1 | 26 Nov 2026 | Draf awal: arsitektur, model data, engine, AI, alur giliran, animasi, i18n, pengujian, CI/CD |
+| 0.2 | 27 Nov 2026 | Versi nyata terpasang (React 19, Vite 8, TypeScript 6, ESLint 10); `jsx-a11y` ditunda, diganti tes axe |
